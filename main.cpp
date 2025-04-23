@@ -66,7 +66,38 @@ int launchGameWindow(int width, int height, int mineCount) {
     sf::RenderWindow gameWindow(sf::VideoMode(width, height), "Minesweeper Game");
     Board board(rows,cols, mineCount);
 
+    //Preparing digits for mine counter
+    sf::Texture digitsTex = board.getTexture("digits.png");
+    sf::Sprite mineDigits[3];
+
+    for (int i = 0; i < 3; i++) {
+        mineDigits[i].setTexture(digitsTex);
+        mineDigits[i].setTextureRect(sf::IntRect(0, 0, 21, 32));  // initially "000"
+        mineDigits[i].setPosition((cols * 32 - 97) + i * 21, rows * 32 + 16);
+    }
+
+    //Pause Button State
+    bool isPaused = false;
+
+    sf::Sprite pauseButton;
+    pauseButton.setTexture(board.getTexture("pause.png"));  // You'll need pause.png and play.png
+    pauseButton.setPosition((cols * 32 / 2) - 160, rows * 32 + 16);  // Left of smiley
+
     //UI
+    //Clock
+    sf::Clock timer;
+    int elapsedSeconds = 0;
+    bool timerStarted = false;
+
+    sf::Sprite timerDigits[3];
+    for (int i = 0; i < 3; i++) {
+        timerDigits[i].setTexture(digitsTex);
+        timerDigits[i].setTextureRect(sf::IntRect(0, 0, 21, 32));
+        timerDigits[i].setPosition(32 + i * 21, rows * 32 + 16);
+    }
+
+
+
     //Smiley Face
     sf::Sprite smiley;
     smiley.setTexture(board.getTexture("face_happy.png"));
@@ -75,6 +106,11 @@ int launchGameWindow(int width, int height, int mineCount) {
     int smiley_y = (rows + 0.5) * 32;
     smiley.setPosition(smiley_x,smiley_y);
 
+    //Debug
+    bool debug = false;
+    sf::Sprite debugButton;
+    debugButton.setTexture(board.getTexture("debug.png"));
+    debugButton.setPosition((cols * 32 / 2) + 96, rows * 32 + 16);  // Right of smiley
 
 
     while (gameWindow.isOpen()) {
@@ -83,25 +119,62 @@ int launchGameWindow(int width, int height, int mineCount) {
             if (event.type == sf::Event::Closed)
                 gameWindow.close();
 
-            // Left click to reveal a tile
+            // Left click
             if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
-                int x = event.mouseButton.x;
-                int y = event.mouseButton.y;
+                if (event.type == sf::Event::MouseButtonPressed) {
+                    int x = event.mouseButton.x;
+                    int y = event.mouseButton.y;
 
-                int row = y / 32;
-                int col = x / 32;
+                    // ✅ UI BUTTONS FIRST (always clickable)
+                    if (smiley.getGlobalBounds().contains(x, y)) {
+                        board.reset();
+                        timer.restart();
+                        elapsedSeconds = 0;
+                        timerStarted = false;
+                        isPaused = false;
+                        pauseButton.setTexture(board.getTexture("pause.png"));
+                    }
 
-                board.reveal(row, col);
+                    if (debugButton.getGlobalBounds().contains(x, y)) {
+                        debug = !debug;
+                    }
 
-                //Reset when pressing smiley
-                if (smiley.getGlobalBounds().contains(x,y)) {
-                    std:: cout << "RESET BOARD!" << std::endl;
-                    board.reset();
+                    if (pauseButton.getGlobalBounds().contains(x, y)) {
+                        isPaused = !isPaused;
+                        pauseButton.setTexture(board.getTexture(isPaused ? "play.png" : "pause.png"));
+                    }
+
+                    // 🧱 Now only handle tile clicks if game is active
+                    if (!board.isGameOver() && !board.isGameWon() && !isPaused) {
+                        int row = y / 32;
+                        int col = x / 32;
+
+                        if (event.mouseButton.button == sf::Mouse::Left) {
+                            if (!timerStarted) {
+                                timer.restart();
+                                timerStarted = true;
+                            }
+                            board.reveal(row, col);
+                        }
+
+                        if (event.mouseButton.button == sf::Mouse::Right) {
+                            Tile& tile = board.getTile(row, col);
+                            if (!tile.getRevealed()) {
+                                tile.toggleFlag();
+                            }
+                        }
+                    }
                 }
+
+
             }
 
             // Right click to toggle flag
             if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Right) {
+                if (board.isGameOver() || board.isGameWon() || isPaused ) {
+                    continue;
+                }
+
                 int x = event.mouseButton.x;
                 int y = event.mouseButton.y;
 
@@ -115,18 +188,67 @@ int launchGameWindow(int width, int height, int mineCount) {
                     }
                 }
             }
-
-
         }
 
         gameWindow.clear(sf::Color::White);
 
-        board.draw(gameWindow);
-        gameWindow.draw(smiley);
+        board.draw(gameWindow, debug);
 
+        gameWindow.draw(smiley);
+        gameWindow.draw(debugButton);
+
+
+        for (int i = 0; i < 3; i++) {
+            gameWindow.draw(mineDigits[i]);
+        }
+
+        int remainingMines = mineCount - board.getFlags();
+
+        bool isNegative = remainingMines < 0;
+        int absVal = std::abs(remainingMines);
+
+        std::string countStr = std::to_string(absVal);
+        while (countStr.length() < 3) countStr = "0" + countStr;
+
+        for (int i = 0; i < 3; i++) {
+            int digit = countStr[i] - '0';
+            mineDigits[i].setTextureRect(sf::IntRect(digit * 21, 0, 21, 32));
+        }
+
+        if (isNegative) {
+            mineDigits[0].setTextureRect(sf::IntRect(10 * 21, 0, 21, 32));  // "-" is at digit slot 10
+        }
+
+        if (board.isGameOver()) {
+            smiley.setTexture(board.getTexture("face_lose.png"));
+        } else if (board.isGameWon()) {
+            smiley.setTexture(board.getTexture("face_win.png"));
+        } else {
+            smiley.setTexture(board.getTexture("face_happy.png"));
+        }
+
+        if (timerStarted && !board.isGameOver() && !board.isGameWon() && !isPaused) {
+            elapsedSeconds = static_cast<int>(timer.getElapsedTime().asSeconds());
+            if (elapsedSeconds > 999) elapsedSeconds = 999;
+        }
+
+        std::string timeStr = std::to_string(elapsedSeconds);
+        while (timeStr.length() < 3) timeStr = "0" + timeStr;
+
+        for (int i = 0; i < 3; i++) {
+            int digit = timeStr[i] - '0';
+            timerDigits[i].setTextureRect(sf::IntRect(digit * 21, 0, 21, 32));
+        }
+
+        for (int i = 0; i < 3; i++) {
+            gameWindow.draw(timerDigits[i]);
+        }
+
+
+
+        gameWindow.draw(pauseButton);
         gameWindow.display();
     }
-
 
     //Loading Textures
     //Happy Face
