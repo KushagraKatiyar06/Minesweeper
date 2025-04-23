@@ -8,10 +8,8 @@
 #pragma once
 #include <SFML/Graphics.hpp>
 #include <map>
-#include <random>
 #include <vector>
 #include <string>
-#include <iostream>
 #include "Tile.h"
 
 class Board {
@@ -21,15 +19,19 @@ private:
     int mines;
     bool gameOver = false;
     bool gameWin = false;
+    int playerWinTime = -1;
 
     std::vector<std::vector<Tile>> board;
     std::map<std::string, sf::Texture> textures;
-    std::vector<std::string> basicTileNames = {
-        "mine.png", "tile_hidden.png", "tile_revealed.png", "flag.png", "face_happy.png", "face_lose.png", "digits.png", "face_win.png", "debug.png", "pause.png", "play.png"
+    std::vector<std::string> fileNames = {
+        "mine.png", "tile_hidden.png", "tile_revealed.png",
+        "flag.png", "face_happy.png", "face_lose.png",
+        "digits.png", "face_win.png", "debug.png",
+        "pause.png", "play.png", "leaderboard.png"
     };
 
 public:
-    Board(int rows, int columns, int mines);
+    Board(int columns, int rows, int mines);
 
     void loadTextures();
     void createBoard();
@@ -47,6 +49,9 @@ public:
     bool isGameWon() const;
     void setGameWon(bool value);
     void checkWin();
+    int getPlayerWinTime() const;
+    void setPlayerWinTime(int time);
+
 
 
 };

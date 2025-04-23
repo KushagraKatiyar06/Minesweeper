@@ -1,5 +1,13 @@
 #include "Tile.h"
 
+//Constructors
+Tile::Tile(){
+    mine = false;
+    revealed = false;
+    flagged = false;
+    number_of_mines_nearby = 0;
+}
+
 // Setters
 void Tile::reveal() {
     revealed = true;
