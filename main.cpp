@@ -86,8 +86,13 @@ int launchGameWindow(int width, int height, int mineCount) {
     //UI
     //Clock
     sf::Clock timer;
+    sf::Time timerStartTime;
     int elapsedSeconds = 0;
     bool timerStarted = false;
+    sf::Time pauseOffset = sf::Time::Zero;  // total paused time
+    sf::Time pauseStartTime;                // when pause started
+
+
 
     sf::Sprite timerDigits[3];
     for (int i = 0; i < 3; i++) {
@@ -125,14 +130,18 @@ int launchGameWindow(int width, int height, int mineCount) {
                     int x = event.mouseButton.x;
                     int y = event.mouseButton.y;
 
+
+
                     // ✅ UI BUTTONS FIRST (always clickable)
                     if (smiley.getGlobalBounds().contains(x, y)) {
                         board.reset();
-                        timer.restart();
                         elapsedSeconds = 0;
                         timerStarted = false;
+                        timerStartTime = sf::Time::Zero;
+                        pauseOffset = sf::Time::Zero;
                         isPaused = false;
                         pauseButton.setTexture(board.getTexture("pause.png"));
+
                     }
 
                     if (debugButton.getGlobalBounds().contains(x, y)) {
@@ -141,8 +150,16 @@ int launchGameWindow(int width, int height, int mineCount) {
 
                     if (pauseButton.getGlobalBounds().contains(x, y)) {
                         isPaused = !isPaused;
-                        pauseButton.setTexture(board.getTexture(isPaused ? "play.png" : "pause.png"));
+
+                        if (isPaused) {
+                            pauseStartTime = timer.getElapsedTime();
+                            pauseButton.setTexture(board.getTexture("play.png"));
+                        } else {
+                            pauseOffset += timer.getElapsedTime() - pauseStartTime;
+                            pauseButton.setTexture(board.getTexture("pause.png"));
+                        }
                     }
+
 
                     // 🧱 Now only handle tile clicks if game is active
                     if (!board.isGameOver() && !board.isGameWon() && !isPaused) {
@@ -152,8 +169,10 @@ int launchGameWindow(int width, int height, int mineCount) {
                         if (event.mouseButton.button == sf::Mouse::Left) {
                             if (!timerStarted) {
                                 timer.restart();
+                                timerStartTime = timer.getElapsedTime();
                                 timerStarted = true;
                             }
+
                             board.reveal(row, col);
                         }
 
@@ -227,10 +246,14 @@ int launchGameWindow(int width, int height, int mineCount) {
             smiley.setTexture(board.getTexture("face_happy.png"));
         }
 
-        if (timerStarted && !board.isGameOver() && !board.isGameWon() && !isPaused) {
-            elapsedSeconds = static_cast<int>(timer.getElapsedTime().asSeconds());
-            if (elapsedSeconds > 999) elapsedSeconds = 999;
+        if (timerStarted && !board.isGameOver() && !board.isGameWon()) {
+            if (!isPaused) {
+                sf::Time currentTime = timer.getElapsedTime() - timerStartTime - pauseOffset;
+                elapsedSeconds = static_cast<int>(currentTime.asSeconds());
+                if (elapsedSeconds > 999) elapsedSeconds = 999;
+            }
         }
+
 
         std::string timeStr = std::to_string(elapsedSeconds);
         while (timeStr.length() < 3) timeStr = "0" + timeStr;
@@ -243,7 +266,6 @@ int launchGameWindow(int width, int height, int mineCount) {
         for (int i = 0; i < 3; i++) {
             gameWindow.draw(timerDigits[i]);
         }
-
 
 
         gameWindow.draw(pauseButton);
