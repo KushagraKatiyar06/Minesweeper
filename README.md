@@ -1,5 +1,5 @@
-Minesweeper
-A classic Minesweeper game built with C++ and the SFML library.
+# Minesweeper
+## A classic Minesweeper game built with C++ and the SFML library.
 
 Features
 Classic Gameplay: Enjoy the traditional Minesweeper experience.
@@ -11,13 +11,10 @@ Leaderboard: Keep track of your best times with an in-game leaderboard.
 Graphical Interface: The game uses the SFML library for a graphical interface, including textures for tiles, numbers, and faces.
 
 Prerequisites
-To build and run this project, you will need:
-
-A C++ compiler (e.g., g++)
-
-CMake
-
-SFML (Simple and Fast Multimedia Library)
+1. To build and run this project, you will need:
+2. A C++ compiler (e.g., g++)
+3. CMake
+4. SFML (Simple and Fast Multimedia Library)
 
 Make sure to configure your SFML installation path in the CMakeLists.txt file.
 
@@ -45,9 +42,9 @@ The game's dimensions and mine count are controlled by the config.cfg file. You 
 
 Example config.cfg:
 
-25
-16
-50
+*25
+*16
+*50
 
 This would create a board with 25 columns, 16 rows, and 50 mines.
 
